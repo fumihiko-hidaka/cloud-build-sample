@@ -5,5 +5,3 @@ steps:
   args: ['install']
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app', 'deploy', '--version', '1', 'app.yaml']
-substitutions:
-  _ENVIRONMENT: production
