@@ -19,5 +19,14 @@ exports.notification = (event, context) => {
       status,
       pubSubData,
     }, null, 2));
+  } else {
+    console.log(JSON.stringify({
+      message: 'debug_logging_ng',
+      status,
+      source,
+      repoSource,
+      repoName,
+      pubSubData,
+    }, null, 2));
   }
 };
