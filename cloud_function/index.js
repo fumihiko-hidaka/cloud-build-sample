@@ -8,25 +8,34 @@ exports.notification = (event, context) => {
   const pubSubMessage = Buffer.from(event.data, 'base64').toString();
   const pubSubData = JSON.parse(pubSubMessage) || {};
 
-  const status = pubSubData.status || '';
   const source = pubSubData.source || {};
   const repoSource = source.repoSource || {};
   const repoName = repoSource.repoName || '';
 
   if (repoName === 'cloud-build-sample') {
-    console.log(JSON.stringify({
-      message: 'debug_logging',
-      status,
-      pubSubData,
-    }, null, 2));
-  } else {
-    console.log(JSON.stringify({
-      message: 'debug_logging_ng',
-      status,
-      source,
-      repoSource,
-      repoName,
-      pubSubData,
-    }, null, 2));
+    const { IncomingWebhook } = require('@slack/client');
+    const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+    const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL);
+
+    const message = createSlackMessage(pubSubData);
+
+    webhook.send(message, () => null);
   }
+};
+
+const createSlackMessage = (build) => {
+  return {
+    text: 'Build `${build.id}`',
+    mrkdwn: true,
+    attachments: [
+      {
+        title: 'Build logs',
+        title_link: build.logUrl,
+        fields: [{
+          title: 'Status',
+          value: build.status
+        }]
+      }
+    ]
+  };
 };
