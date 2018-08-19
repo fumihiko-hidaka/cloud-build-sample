@@ -8,11 +8,16 @@ exports.notification = (event, context) => {
   const pubSubMessage = Buffer.from(event.data, 'base64').toString();
   const pubSubData = JSON.parse(pubSubMessage) || {};
 
+  const status = pubSubData.status || '';
   const source = pubSubData.source || {};
   const repoSource = source.repoSource || {};
   const repoName = repoSource.repoName || '';
 
   if (repoName === 'cloud-build-sample') {
-    console.log(JSON.stringify(pubSubData, null, 2));
+    console.log(JSON.stringify({
+      message: 'debug_logging',
+      status,
+      pubSubData,
+    }, null, 2));
   }
 };
