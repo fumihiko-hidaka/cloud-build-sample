@@ -5,6 +5,14 @@
  * @param {!Object} context Metadata for the event.
  */
 exports.notification = (event, context) => {
-  const pubSubMessage = event.data;
-  console.log(Buffer.from(pubSubMessage, 'base64').toString());
+  const pubSubMessage = Buffer.from(event.data, 'base64').toString();
+  const pubSubData = JSON.parse(pubSubMessage) || {};
+
+  const source = pubSubData.source || {};
+  const repoSource = source.repoSource || {};
+  const repoName = repoSource.repoName || '';
+
+  if (repoName === 'cloud-build-sample') {
+    console.log(JSON.stringify(pubSubData, null, 2));
+  }
 };
