@@ -12,7 +12,10 @@ exports.notification = (event, context) => {
   const repoSource = source.repoSource || {};
   const repoName = repoSource.repoName || '';
 
+
   if (repoName === 'cloud-build-sample') {
+    console.log(JSON.stringify(pubSubData, null, 2));
+
     const { IncomingWebhook } = require('@slack/client');
     const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
     const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL);
@@ -24,8 +27,12 @@ exports.notification = (event, context) => {
 };
 
 const createSlackMessage = (build) => {
+  const sourceProvenance = build.sourceProvenance || {};
+  const resolvedRepoSource = sourceProvenance.resolvedRepoSource || {};
+  const commitSha = resolvedRepoSource.commitSha || 'unknown';
+
   return {
-    text: `Build ${build.id}`,
+    text: `Build \`${commitSha}\``,
     mrkdwn: true,
     attachments: [
       {
