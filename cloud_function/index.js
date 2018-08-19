@@ -25,7 +25,7 @@ exports.notification = (event, context) => {
 
 const createSlackMessage = (build) => {
   return {
-    text: 'Build `${build.id}`',
+    text: `Build ${build.id}`,
     mrkdwn: true,
     attachments: [
       {
