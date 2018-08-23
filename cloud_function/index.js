@@ -8,41 +8,97 @@ exports.notification = (event, context) => {
   const pubSubMessage = Buffer.from(event.data, 'base64').toString();
   const pubSubData = JSON.parse(pubSubMessage) || {};
 
-  const source = pubSubData.source || {};
-  const repoSource = source.repoSource || {};
-  const repoName = repoSource.repoName || '';
+  const repoName = getRepoName(pubSubData);
 
-
-  if (repoName === 'cloud-build-sample') {
-    console.log(JSON.stringify(pubSubData, null, 2));
-
+  if (repoName) {
     const { IncomingWebhook } = require('@slack/client');
-    const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
-    const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL);
 
+    const webhook = new IncomingWebhook(process.env.SLACK_WEBHOOK_URL);
     const message = createSlackMessage(pubSubData);
 
-    webhook.send(message, () => null);
+    if (message) {
+      console.log(pubSubMessage);
+      webhook.send(message, () => null);
+    }
   }
 };
 
 const createSlackMessage = (build) => {
-  const sourceProvenance = build.sourceProvenance || {};
-  const resolvedRepoSource = sourceProvenance.resolvedRepoSource || {};
-  const commitSha = resolvedRepoSource.commitSha || 'unknown';
+  const {
+    repository,
+    branchName,
+    commitSha,
+    commitUrl,
+  } = getSlackParts(build);
+
+  const environment = process.env.APP_ENV;
+
+  const title = {
+    'WORKING': `${environment}の${repository}を更新します🙏`,
+    'SUCCESS': `${environment}の${repository}を更新しました🎉`,
+  }[build.status];
+
+  if (!title) {
+    return null;
+  }
 
   return {
-    text: `Build \`${commitSha}\``,
-    mrkdwn: true,
+    text: title,
     attachments: [
       {
-        title: 'Build logs',
+        title: `Cloud Build ${repository}`,
         title_link: build.logUrl,
         fields: [{
-          title: 'Status',
-          value: build.status
+          title: branchName,
+          value: `<${commitUrl}|${commitSha}>`,
         }]
       }
     ]
+  };
+};
+
+const getCommitSha = (build) => {
+  const sourceProvenance = build.sourceProvenance || {};
+  const resolvedRepoSource = sourceProvenance.resolvedRepoSource || {};
+  return resolvedRepoSource.commitSha || '';
+};
+
+const getRepoName = (build) => {
+  const source = build.source || {};
+  const repoSource = source.repoSource || {};
+  return repoSource.repoName || '';
+};
+
+const getBranchName = (build) => {
+  const source = build.source || {};
+  const repoSource = source.repoSource || {};
+  return repoSource.branchName || '';
+};
+
+const getSlackParts = (build) => {
+  const repoName = getRepoName(build);
+  const branchName = getBranchName(build);
+  const commitSha = getCommitSha(build);
+
+  let repository = repoName;
+  let repositoryUrl = `https://console.cloud.google.com/code/develop/browse/${repoName}`;
+  let commitUrl = `${repositoryUrl}/${commitSha}`;
+
+  if (repoName.indexOf('github-') === 0) {
+    const repoNameParts = repoName.split('-');
+    repoNameParts.shift();
+
+    const organization = repoNameParts.shift();
+
+    repository = repoNameParts.join('-');
+    repositoryUrl = `https://github.com/${organization}/${repository}`;
+    commitUrl = `${repositoryUrl}/commit/${commitSha}`;
+  }
+
+  return {
+    repository,
+    branchName,
+    commitSha,
+    commitUrl,
   };
 };
